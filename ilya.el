@@ -46,12 +46,42 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/slime/contrib")
 
 (require 'slime)
+(slime-setup '(slime-repl slime-fuzzy))
 
-(defun slime-init ()
-  (unless clojure-mode
-    (slime-setup '(slime-fancy slime-asdf slime-fuzzy slime-autodoc slime-tramp slime-repl slime-xref-browser slime-fancy-inspector slime-references))))
+(eval-after-load 'slime
+  '(progn
+    (define-key slime-mode-map (kbd "TAB") 'slime-indent-and-complete-symbol)
+    (add-to-list 'slime-lisp-implementations 
+                          '(sbcl ("/usr/local/bin/sbcl")))))
 
-(slime-setup '(slime-fancy slime-asdf slime-fuzzy slime-autodoc slime-tramp slime-repl slime-xref-browser slime-fancy-inspector slime-references))
+(require 'clojure-mode)
+
+; (defun slime-init ()
+;   (if 'clojure-mode
+;     (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references))
+;     (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references))))
+    
+
+;; Clojure SLIME custom stuff
+(defun swank-clojure-init ()
+  (slime-setup '(slime-repl slime-fuzzy)))
+    
+(defun slime-clojure ()
+  (interactive)
+  (swank-clojure-init)
+  (slime-connect "127.0.0.1" 4005))
+
+;; SBCL SLIME custom stuff
+(defun sbcl-slime-init ()
+  (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references)))
+  
+(defun slime-sbcl ()
+  (interactive)
+  (sbcl-slime-init)
+  (slime 'sbcl))
+  
+
+; (slime-setup '(slime-fancy slime-asdf slime-fuzzy slime-autodoc slime-tramp slime-repl slime-xref-browser slime-fancy-inspector slime-references))
 
 (add-hook 'lisp-mode-hook (lambda () (slime-mode t)))
 (add-hook 'inferior-lisp-mode-hook (lambda () (inferior-slime-mode t)))
@@ -81,11 +111,7 @@
 (global-set-key (kbd "s-}") 'next-buffer)
 (global-set-key (kbd "s-{") 'previous-buffer)
 
-(eval-after-load "slime"
-  '(progn
-    (define-key slime-mode-map (kbd "TAB") 'slime-indent-and-complete-symbol)))
 
-(require 'clojure-mode)
 ;; (require 'clojure-test-mode)
 
 
