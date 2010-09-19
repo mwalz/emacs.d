@@ -99,10 +99,9 @@
   
 
 ; (slime-setup '(slime-fancy slime-asdf slime-fuzzy slime-autodoc slime-tramp slime-repl slime-xref-browser slime-fancy-inspector slime-references))
-
 (add-hook 'lisp-mode-hook (lambda () (slime-mode t)))
 (add-hook 'inferior-lisp-mode-hook (lambda () (inferior-slime-mode t)))
-(add-hook 'clojure-mode-hook (lambda () (clojure-mode t)))
+(add-hook 'clojure-mode-hook (lambda () ()))
 
 ; (slime-setup '(slime-repl slime-fuzzy slime-repl))
 
@@ -144,7 +143,6 @@
   '(progn
       (color-theme-initialize)
       (color-theme-zenburn)))
-
 
 ;;; Project revive stuff
 (require 'revive)
