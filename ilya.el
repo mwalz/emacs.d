@@ -71,23 +71,37 @@
     ;; you can customize slime-port using .dir-locals.el
     (shell-command (format "cd %s && /Users/ilya/local/bin/lein swank %s &" root slime-port)
                    "*lein-swank*")
+    (shell-command (format "cd %s && /Users/ilya/local/bin/lein repl &" root)
+                   "*lein-repl*")
     (set-process-filter (get-buffer-process "*lein-swank*")
                         (lambda (process output)
                           (when (string-match "Connection opened on" output)
-                            (swank-clojure-init)
+                            (swank-clojure-init "lein")
                             (slime-connect "localhost" slime-port)
                             (set-process-filter process nil))))
-    (message "Starting swank server...")))
+    (message "Starting lein swank server...")))
 
 
-(defun swank-clojure-init ()
-  (slime-setup '(slime-repl slime-fuzzy)))
-    
-(defun slime-clojure ()
+;; Clojure SLIME custom stuff
+(defun cake-swank ()
   (interactive)
-  (swank-clojure-init)
-  (slime-connect "127.0.0.1" 4005))
+  ;; you can customize slime-port using .dir-locals.el
+  (shell-command (format "cd %s && /Users/ilya/local/bin/cake swank &" default-directory)
+                 "*cake-swank*") 
+  (set-process-filter (get-buffer-process "*cake-swank*")
+                        (lambda (process output)
+                          (when (string-match "on port 4005" output)
+                            (swank-clojure-init "cake")
+                            (slime-connect "localhost" 4005)
+                            (set-process-filter process nil))))
+  (message "Starting cake swank server..."))
 
+(defun swank-clojure-init (type)
+  (slime-setup '(slime-repl slime-fuzzy))
+  (require 'inferior-slime)
+  (setq inferior-lisp-program (format "~/local/bin/%s repl" type))) 
+    
+    
 ;; SBCL SLIME custom stuff
 (defun sbcl-slime-init ()
   (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references)))
@@ -96,9 +110,7 @@
   (interactive)
   (sbcl-slime-init)
   (slime 'sbcl))
-  
 
-; (slime-setup '(slime-fancy slime-asdf slime-fuzzy slime-autodoc slime-tramp slime-repl slime-xref-browser slime-fancy-inspector slime-references))
 (add-hook 'lisp-mode-hook (lambda () (slime-mode t)))
 (add-hook 'inferior-lisp-mode-hook (lambda () (inferior-slime-mode t)))
 (add-hook 'clojure-mode-hook (lambda () ()))
