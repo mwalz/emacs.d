@@ -45,6 +45,13 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/slime")
 (add-to-list 'load-path "~/.emacs.d/vendor/slime/contrib")
 
+;; Haskell stuff
+(load "~/.emacs.d/vendor/haskell-mode/haskell-site-file")
+(add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
+;;(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
+;;(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
+
 (require 'slime)
 (slime-setup '(slime-repl slime-fuzzy))
 
@@ -54,52 +61,48 @@
     (add-to-list 'slime-lisp-implementations 
                           '(sbcl ("/usr/local/bin/sbcl")))))
 
-(require 'clojure-mode)
-
-; (defun slime-init ()
-;   (if 'clojure-mode
-;     (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references))
-;     (slime-setup '(slime-repl slime-fuzzy slime-autodoc slime-fancy slime-asdf slime-tramp slime-xref-browser slime-fancy-inspector slime-references))))
-    
 
 ;; Clojure SLIME custom stuff
 (defun lein-swank ()
-  (interactive)
+  (interactive)    
+  (swank-clojure-init "lein")
   (let ((root (locate-dominating-file default-directory "project.clj")))
     (when (not root)
       (error "Not in a Leiningen project."))
     ;; you can customize slime-port using .dir-locals.el
-    (shell-command (format "cd %s && /Users/ilya/local/bin/lein swank %s &" root slime-port)
+    (shell-command (format "cd '%s' && /Users/ilya/local/bin/lein swank %s &" root 4005)
                    "*lein-swank*")
-    (shell-command (format "cd %s && /Users/ilya/local/bin/lein repl &" root)
-                   "*lein-repl*")
+    ; (shell-command (format "cd %s && /Users/ilya/local/bin/lein repl &" root)
+    ;                "*lein-repl*")
     (set-process-filter (get-buffer-process "*lein-swank*")
                         (lambda (process output)
                           (when (string-match "Connection opened on" output)
-                            (swank-clojure-init "lein")
-                            (slime-connect "localhost" slime-port)
+                            (slime-connect "localhost" 4005)
                             (set-process-filter process nil))))
+    (slime-redirect-inferior-output)                        
     (message "Starting lein swank server...")))
 
 
 ;; Clojure SLIME custom stuff
 (defun cake-swank ()
   (interactive)
-  ;; you can customize slime-port using .dir-locals.el
-  (shell-command (format "cd %s && /Users/ilya/local/bin/cake swank &" default-directory)
-                 "*cake-swank*") 
+  (swank-clojure-init "cake")
+  (shell-command (format "cd '%s' && /Users/ilya/local/bin/cake swank &" default-directory)
+                 "*cake-swank*")                               
   (set-process-filter (get-buffer-process "*cake-swank*")
                         (lambda (process output)
                           (when (string-match "on port 4005" output)
-                            (swank-clojure-init "cake")
                             (slime-connect "localhost" 4005)
                             (set-process-filter process nil))))
+  ;; Start inferior lisp, might be a better way???  
+  ; (setq inferior-lisp-process (get-process "inferior-lisp"))
+  ; (slime-redirect-inferior-output)
   (message "Starting cake swank server..."))
 
 (defun swank-clojure-init (type)
   (slime-setup '(slime-repl slime-fuzzy))
   (require 'inferior-slime)
-  (setq inferior-lisp-program (format "~/local/bin/%s repl" type))) 
+  (setq inferior-lisp-program (format "~/local/bin/%s repl" type)))
     
     
 ;; SBCL SLIME custom stuff
@@ -109,11 +112,10 @@
 (defun slime-sbcl ()
   (interactive)
   (sbcl-slime-init)
-  (slime 'sbcl))
+  (slime 'sbcl))            
 
 (add-hook 'lisp-mode-hook (lambda () (slime-mode t)))
 (add-hook 'inferior-lisp-mode-hook (lambda () (inferior-slime-mode t)))
-(add-hook 'clojure-mode-hook (lambda () ()))
 
 ; (slime-setup '(slime-repl slime-fuzzy slime-repl))
 
@@ -138,6 +140,7 @@
 (global-set-key (kbd "<s-return>") 'new-line-at-cursor)
 (global-set-key (kbd "s-}") 'next-buffer)
 (global-set-key (kbd "s-{") 'previous-buffer)
+(global-set-key (kbd "s-/") 'comment-or-uncomment-region)
 
 
 ;; (require 'clojure-test-mode)
@@ -165,4 +168,3 @@
 (define-key ctl-x-map "S" 'save-current-configuration)
 (define-key ctl-x-map "F" 'resume)
 (define-key ctl-x-map "K" 'wipe)
-
