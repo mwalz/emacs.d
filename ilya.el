@@ -45,6 +45,8 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/slime")
 (add-to-list 'load-path "~/.emacs.d/vendor/slime/contrib")
 
+;;(load (expand-file-name "~/quicklisp/slime-helper.el"))
+
 ;; Haskell stuff
 (load "~/.emacs.d/vendor/haskell-mode/haskell-site-file")
 (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
