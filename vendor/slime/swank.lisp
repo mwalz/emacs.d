@@ -2107,7 +2107,7 @@ Fall back to the the current if no such package exists."
   "Bind *BUFFER-PACKAGE* to BUFFER-PACKAGE and evaluate FORM.
 Return the result to the continuation ID.
 Errors are trapped and invoke our debugger."
-  (let (ok result)
+  (let (ok result condition)
     (unwind-protect
          (let ((*buffer-package* (guess-buffer-package buffer-package))
                (*buffer-readtable* (guess-buffer-readtable buffer-package))
@@ -2116,13 +2116,14 @@ Errors are trapped and invoke our debugger."
            (check-type *buffer-readtable* readtable)
            ;; APPLY would be cleaner than EVAL. 
            ;; (setq result (apply (car form) (cdr form)))
-           (setq result (with-slime-interrupts (eval form)))
+           (handler-bind ((t (lambda (c) (setf condition c))))
+             (setq result (with-slime-interrupts (eval form))))
            (run-hook *pre-reply-hook*)
            (setq ok t))
       (send-to-emacs `(:return ,(current-thread)
                                ,(if ok
                                     `(:ok ,result)
-                                    `(:abort))
+                                    `(:abort ,(prin1-to-string condition)))
                                ,id)))))
 
 (defvar *echo-area-prefix* "=> "
@@ -2667,7 +2668,9 @@ Operation was KERNEL::DIVISION, operands (1 0).\"
   (nth index *sldb-restarts*))
 
 (defslimefun invoke-nth-restart (index)
-  (invoke-restart-interactively (nth-restart index)))
+  (let ((restart (nth-restart index)))
+    (when restart
+      (invoke-restart-interactively restart))))
 
 (defslimefun sldb-abort ()
   (invoke-restart (find 'abort *sldb-restarts* :key #'restart-name)))
@@ -2756,15 +2759,20 @@ TAGS has is a list of strings."
 (define-stepper-function sldb-next sldb-step-next)
 (define-stepper-function sldb-out  sldb-step-out)
 
+(defslimefun toggle-break-on-signals ()
+  (setq *break-on-signals* (not *break-on-signals*))
+  (format nil "*break-on-signals* = ~a" *break-on-signals*))
+
 
 ;;;; Compilation Commands.
 
 (defstruct (:compilation-result
-             (:type list) :named
-             (:constructor make-compilation-result (notes successp duration)))
+             (:type list) :named)
   notes
   (successp nil :type boolean)
-  (duration 0.0 :type float))
+  (duration 0.0 :type float)
+  (loadp nil :type boolean)
+  (faslfile nil :type (or null string)))
 
 (defun measure-time-interval (fun)
   "Call FUN and return the first return value and the elapsed time.
@@ -2788,16 +2796,24 @@ The time is measured in seconds."
 
 (defun collect-notes (function)
   (let ((notes '()))
-    (multiple-value-bind (successp seconds)
+    (multiple-value-bind (result seconds)
         (handler-bind ((compiler-condition
                         (lambda (c) (push (make-compiler-note c) notes))))
           (measure-time-interval
            (lambda ()
-               ;; To report location of error-signaling toplevel forms
-               ;; for errors in EVAL-WHEN or during macroexpansion.
-               (with-simple-restart (abort "Abort compilation.")
-                 (funcall function)))))
-      (make-compilation-result (reverse notes) (and successp t) seconds))))
+             ;; To report location of error-signaling toplevel forms
+             ;; for errors in EVAL-WHEN or during macroexpansion.
+             (restart-case (multiple-value-list (funcall function))
+               (abort () :report "Abort compilation." (list nil))))))
+      (destructuring-bind (successp &optional loadp faslfile) result
+        (let ((faslfile (etypecase faslfile
+                          (null nil)
+                          (pathname (pathname-to-filename faslfile)))))
+          (make-compilation-result :notes (reverse notes) 
+                                   :duration seconds
+                                   :successp (if successp t)
+                                   :loadp (if loadp t)
+                                   :faslfile faslfile))))))
 
 (defslimefun compile-file-for-emacs (filename load-p &rest options &key policy
                                               &allow-other-keys)
@@ -2811,12 +2827,12 @@ Record compiler notes signalled as `compiler-condition's."
          (multiple-value-bind (output-pathname warnings? failure?)
              (swank-compile-file pathname
                                  (fasl-pathname pathname options)
-                                 load-p
+                                 nil
                                  (or (guess-external-format pathname)
                                      :default)
                                  :policy policy)
-           (declare (ignore output-pathname warnings?))
-           (not failure?)))))))
+           (declare (ignore warnings?))
+           (values (not failure?) load-p output-pathname)))))))
 
 (defvar *fasl-pathname-function* nil
   "In non-nil, use this function to compute the name for fasl-files.")
@@ -2843,15 +2859,16 @@ Record compiler notes signalled as `compiler-condition's."
 (defslimefun compile-string-for-emacs (string buffer position filename policy)
   "Compile STRING (exerpted from BUFFER at POSITION).
 Record compiler notes signalled as `compiler-condition's."
-  (with-buffer-syntax ()
-    (collect-notes
-     (lambda () 
-       (let ((*compile-print* t) (*compile-verbose* nil))
-         (swank-compile-string string
-                               :buffer buffer
-                               :position position 
-                               :filename filename
-                               :policy policy))))))
+  (let ((offset (cadr (assoc :position position))))
+    (with-buffer-syntax ()
+      (collect-notes
+       (lambda () 
+         (let ((*compile-print* t) (*compile-verbose* nil))
+           (swank-compile-string string
+                                 :buffer buffer
+                                 :position offset 
+                                 :filename filename
+                                 :policy policy)))))))
 
 (defslimefun compile-multiple-strings-for-emacs (strings policy)
   "Compile STRINGS (exerpted from BUFFER at POSITION).
@@ -2964,6 +2981,27 @@ the filename of the module (or nil if the file doesn't exist).")
 
 (defslimefun swank-compiler-macroexpand (string)
   (apply-macro-expander #'compiler-macroexpand string))
+
+(defslimefun swank-expand-1 (string)
+  (apply-macro-expander #'expand-1 string))
+
+(defslimefun swank-expand (string)
+  (apply-macro-expander #'expand string))
+
+(defun expand-1 (form)
+  (multiple-value-bind (expansion expanded?) (macroexpand-1 form)
+    (if expanded?
+        (values expansion t)
+        (compiler-macroexpand-1 form))))
+
+(defun expand (form)
+  (expand-repeatedly #'expand-1 form))
+
+(defun expand-repeatedly (expander form)
+  (loop
+    (multiple-value-bind (expansion expanded?) (funcall expander form)
+      (unless expanded? (return expansion))
+      (setq form expansion))))
 
 (defslimefun swank-format-string-expand (string)
   (apply-macro-expander #'format-string-expand string))
@@ -3447,6 +3485,8 @@ DSPEC is a string and LOCATION a source location. NAME is a string."
               ((:newline) (list newline))
               ((:value obj &optional str) 
                (list (value-part obj str (istate.parts istate))))
+              ((:label &rest strs)
+               (list (list :label (apply #'concatenate 'string (mapcar #'string strs)))))
               ((:action label lambda &key (refreshp t)) 
                (list (action-part label lambda refreshp
                                   (istate.actions istate))))
@@ -3932,6 +3972,7 @@ Collisions are caused because package information is ignored."
 (add-hook *pre-reply-hook* 'sync-indentation-to-emacs)
 
 (defun before-init (version load-path)
+  (pushnew :swank *features*)
   (setq *swank-wire-protocol-version* version)
   (setq *load-path* load-path)
   (swank-backend::warn-unimplemented-interfaces))

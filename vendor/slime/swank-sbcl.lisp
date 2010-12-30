@@ -1630,8 +1630,9 @@ stack."
                          :dual-channel-p t                         
                          :external-format external-format))
 
-(defimplementation background-save-image  (filename &key restart-function
-                                              completion-function)
+#-win32
+(defimplementation background-save-image (filename &key restart-function
+                                                   completion-function)
   (flet ((restart-sbcl ()
            (sb-debug::enable-debugger)
            (setf sb-impl::*descriptor-handlers* nil)
@@ -1656,3 +1657,10 @@ stack."
                     (assert (sb-posix:wifexited status))
                     (funcall completion-function
                              (zerop (sb-posix:wexitstatus status))))))))))))
+
+(defun deinit-log-output ()
+  ;; Can't hang on to an fd-stream from a previous session.
+  (setf (symbol-value (find-symbol "*LOG-OUTPUT*" 'swank))
+        nil))
+
+(pushnew 'deinit-log-output sb-ext:*save-hooks*)

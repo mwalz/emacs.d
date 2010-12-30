@@ -27,7 +27,7 @@
 ;;; `READ-SEQUENCE' with large sequences has problems in 18e. This new
 ;;; definition works better.
 
-#-cmu19
+#+cmu18
 (progn
   (let ((s (find-symbol (string :*enable-package-locked-errors*) :lisp)))
     (when s
@@ -577,7 +577,7 @@ Return a `location' record, or (:error REASON) on failure."
 
 ;;; More types of XREF information were added since 18e:
 ;;;
-#+cmu19
+#-cmu18
 (progn
   (defxref who-macroexpands xref:who-macroexpands)
   ;; XXX
@@ -613,8 +613,8 @@ This is a workaround for a CMUCL bug: XREF records are cumulative."
   (when c:*record-xref-info*
     (let ((filename (truename namestring)))
       (dolist (db (list xref::*who-calls*
-                        #+cmu19 xref::*who-is-called*
-                        #+cmu19 xref::*who-macroexpands*
+                        #-cmu18 xref::*who-is-called*
+                        #-cmu18 xref::*who-macroexpands*
                         xref::*who-references*
                         xref::*who-binds*
                         xref::*who-sets*))
@@ -2556,3 +2556,36 @@ int main (int argc, char** argv) {
       (call-program args :output t)
       (delete-file infile)
       outfile)))
+
+#+#.(swank-backend:with-symbol 'unicode-complete 'lisp)
+(defun match-semi-standard (prefix matchp)
+  ;; Handle the CMUCL's short character names.
+  (loop for name in lisp::char-name-alist
+     when (funcall matchp prefix (car name))
+     collect (car name)))
+
+#+#.(swank-backend:with-symbol 'unicode-complete 'lisp)
+(defimplementation character-completion-set (prefix matchp)
+  (let ((names (lisp::unicode-complete prefix)))
+    ;; Match prefix against semistandard names.  If there's a match,
+    ;; add it to our list of matches.
+    (let ((semi-standard (match-semi-standard prefix matchp)))
+      (when semi-standard
+        (setf names (append semi-standard names))))
+    (setf names (mapcar #'string-capitalize names))
+    (loop for n in names
+       when (funcall matchp prefix n)
+       collect n)))
+
+(defimplementation codepoint-length (string)
+  "Return the number of code points in the string.  The string MUST be
+  a valid UTF-16 string."
+  (do ((len (length string))
+       (index 0 (1+ index))
+       (count 0 (1+ count)))
+      ((>= index len)
+       count)
+    (multiple-value-bind (codepoint wide)
+	(lisp:codepoint string index)
+      (declare (ignore codepoint))
+      (when wide (incf index)))))
