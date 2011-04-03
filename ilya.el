@@ -3,7 +3,9 @@
           (normal-top-level-add-subdirs-to-load-path)))
 
 (add-to-list 'package-archives
-             '("technomancy" . "http://repo.technomancy.us/emacs/") t)
+  '("technomancy" . "http://repo.technomancy.us/emacs/") t)
+(add-to-list 'package-archives
+  '("marmalade" . "http://marmalade-repo.org/packages/") t)             
           
 (defun new-line-at-cursor ()
   (interactive)
@@ -48,7 +50,6 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/slime")
 (add-to-list 'load-path "~/.emacs.d/vendor/slime/contrib")
 
-;;(load (expand-file-name "~/quicklisp/slime-helper.el"))
 
 ;; Haskell stuff
 (load "~/.emacs.d/vendor/haskell-mode/haskell-site-file")
@@ -56,11 +57,18 @@
 (add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)    
 (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
 ; (add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)  
-(require 'inf-haskell)                                      
+(require 'inf-haskell)   
+  
+  
+;; Scala stuff                  
+(require 'scala-mode-auto)
+; (require 'scala-electric)
+(add-hook 'scala-mode-hook (lambda() (scala-electric-mode))) 
 
 
 (require 'slime)
 (slime-setup '(slime-repl slime-fuzzy))
+;;(load (expand-file-name "~/quicklisp/slime-helper.el"))
 
 (eval-after-load 'slime
   '(progn
@@ -77,7 +85,9 @@
   (let ((buffer (get-buffer-create "*clojure-swank*")))
     (flet ((display-buffer (buffer-or-name &optional not-this-window frame) nil))
           (bury-buffer buffer)
-          (shell-command "~/.lein/bin/swank-clojure &" buffer))
+          (if (locate-dominating-file default-directory "project.clj")
+            (shell-command "~/local/bin/lein swank &" buffer)
+            (shell-command "~/.lein/bin/swank-clojure &" buffer))) 
     (set-process-filter (get-buffer-process buffer)
                         (lambda (process output)
                            (with-current-buffer "*clojure-swank*" (insert output))
