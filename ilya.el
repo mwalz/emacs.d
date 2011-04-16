@@ -203,8 +203,8 @@
 (eval-after-load "color-theme"
   '(progn
       (color-theme-initialize)
-      (color-theme-zenburn)))
-      ;;(color-theme-solarized-dark)))
+      ;;(color-theme-zenburn)))
+      (color-theme-solarized-dark)))
 
 ;;; Project revive stuff
 (require 'revive)
