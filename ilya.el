@@ -18,8 +18,8 @@
   (push "/usr/local/bin" exec-path))
           
 ;;; Size the window
-(add-to-list 'default-frame-alist '(height . 70))
-(add-to-list 'default-frame-alist '(width . 170))
+(add-to-list 'default-frame-alist '(height . 50))
+(add-to-list 'default-frame-alist '(width . 150))
 (set-face-attribute 'default nil :height 160) ; 1/10th, so 160 is 16 point font
 
 (setq inferior-lisp-program "/usr/local/bin/sbcl"
@@ -204,6 +204,7 @@
   '(progn
       (color-theme-initialize)
       (color-theme-zenburn)))
+      ;;(color-theme-solarized-dark)))
 
 ;;; Project revive stuff
 (require 'revive)
