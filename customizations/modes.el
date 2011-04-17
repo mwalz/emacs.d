@@ -9,5 +9,6 @@
 (add-hook 'scala-mode-hook (lambda() (scala-electric-mode)))
 
 ;; ENSIME for Scala
-; (require 'ensime)
-; (add-hook 'scala-mode-hook 'ensime-scala-mode-hook)
+(add-to-list 'load-path "~/.emacs.d/vendor/ensime/elisp/")
+(require 'ensime)
+(add-hook 'scala-mode-hook 'ensime-scala-mode-hook)
