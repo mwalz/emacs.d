@@ -42,3 +42,11 @@
                              (frame-char-height)))))))
 
 (set-frame-size-according-to-resolution)
+
+
+;; Speedbar
+(require 'sr-speedbar)
+(global-set-key (kbd "s-1") 'sr-speedbar-toggle)
+(setq speedbar-mode-hook '(lambda ()
+  (interactive)
+  (other-frame 0)))
