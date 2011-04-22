@@ -47,6 +47,7 @@
 ;; Speedbar
 (require 'sr-speedbar)
 (global-set-key (kbd "s-1") 'sr-speedbar-toggle)
-(setq speedbar-mode-hook '(lambda ()
-  (interactive)
-  (other-frame 0)))
+(sr-speedbar-refresh-turn-off)
+
+;; Add some extensions to speedbar
+(speedbar-add-supported-extension ".proto") ;; protocol buffers
