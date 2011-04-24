@@ -47,6 +47,11 @@
 ;; Speedbar
 (require 'sr-speedbar)
 (global-set-key (kbd "s-1") 'sr-speedbar-toggle)
+(defun refresh-sr-speedbar-to-default-directory ()
+  (interactive)
+  (setq sr-speedbar-last-refresh-dictionary default-directory)
+  (speedbar-refresh))
+(global-set-key (kbd "s-r") 'refresh-sr-speedbar-to-default-directory)
 (sr-speedbar-refresh-turn-off)
 
 ;; Add some extensions to speedbar
