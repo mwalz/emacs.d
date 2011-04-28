@@ -1,11 +1,13 @@
 ;; Color theme config
 (require 'color-theme)
-(eval-after-load "color-theme"
-  '(progn
-    (color-theme-initialize)
-    ;;(color-theme-zenburn)))
-    (color-theme-solarized-dark)))
-    ;;(color-theme-solarized-light)))
+(color-theme-initialize)
+(color-theme-solarized-dark)
+; (eval-after-load "color-theme"
+;   '(progn
+;     (color-theme-initialize)
+;     ;;(color-theme-zenburn)))
+;     (color-theme-solarized-dark)))
+;     ;;(color-theme-solarized-light)))
 
 
 ;; Revive stuff
@@ -50,9 +52,12 @@
 (defun refresh-sr-speedbar-to-default-directory ()
   (interactive)
   (setq sr-speedbar-last-refresh-dictionary default-directory)
-  (speedbar-refresh))
+  (speedbar-refresh)
+  (textmate-clear-cache))
 (global-set-key (kbd "s-r") 'refresh-sr-speedbar-to-default-directory)
 (sr-speedbar-refresh-turn-off)
 
 ;; Add some extensions to speedbar
 (speedbar-add-supported-extension ".proto") ;; protocol buffers
+(setq speedbar-file-regexp ".*")
+  

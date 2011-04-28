@@ -6,4 +6,8 @@
 ;; Autocomplete
 (add-to-list 'ac-dictionary-directories (concat dotfiles-dir "dict"))
 (require 'auto-complete-config)
+(ac-flyspell-workaround)
 (ac-config-default)
+(setq ac-auto-start nil)
+(global-set-key "\M-/" 'auto-complete)
+(ac-set-trigger-key "TAB")
