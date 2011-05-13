@@ -5,7 +5,14 @@
 
 ;; Scala
 (require 'scala-mode-auto)
-(add-hook 'scala-mode-hook (lambda() (scala-electric-mode)))
+(setq yas/my-directory 
+  (concat dotfiles-dir "vendor/scala-mode/contrib/yasnippet/snippets"))
+(yas/load-directory yas/my-directory)
+(add-hook 'scala-mode-hook 
+  '(lambda () 
+    (yas/minor-mode-on)
+    (scala-electric-mode)))
+
 
 ;; ENSIME for Scala
 (add-to-list 'load-path (concat dotfiles-dir "vendor/ensime/elisp"))
