@@ -11,3 +11,9 @@
 (setq ac-auto-start nil)
 (global-set-key "\M-/" 'auto-complete)
 (ac-set-trigger-key "TAB")
+
+
+(require 'dropdown-list)
+(setq yas/prompt-functions '(yas/dropdown-prompt
+                             yas/ido-prompt
+                             yas/completing-prompt))
