@@ -15,7 +15,7 @@
 (add-to-list 'load-path (concat dotfiles-dir "vendor/ensime/elisp"))
 (require 'ensime)
 (add-hook 'scala-mode-hook 'ensime-scala-mode-hook)
-(setq exec-path (append exec-path (list "/home/aemon/scala/bin" )))
+(setq exec-path (append exec-path (list "~/local/typesafe-stack/bin" )))
 
 ;; Python
 (require 'python)
