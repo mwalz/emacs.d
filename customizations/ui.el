@@ -2,6 +2,10 @@
 (require 'color-theme)
 (color-theme-initialize)
 (color-theme-solarized-dark)
+
+(global-set-key (kbd "C-S-s-d") 'color-theme-solarized-dark) 
+(global-set-key (kbd "C-S-s-l") 'color-theme-solarized-light) 
+
 ; (eval-after-load "color-theme"
 ;   '(progn
 ;     (color-theme-initialize)
