@@ -63,4 +63,5 @@
 
 ;; Add some extensions to speedbar
 (speedbar-add-supported-extension ".proto") ;; protocol buffers
+(speedbar-add-supported-extension ".rb") ;; protocol buffers
 (setq speedbar-file-regexp ".*")
